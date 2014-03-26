@@ -127,6 +127,7 @@ play_state.prototype = {
     if ( !this.swipeOccurred && this.isSwipe() ) {
     	this.swipeOccurred = true;
     	this.swipeOccurredAt = this.game.time.now;
+    	this.swipeEventCallback();
     }
 
 	},
@@ -178,6 +179,28 @@ play_state.prototype = {
 
 	myfunc2: function() {},
 
+	swipeEventCallback: function() {
+		console.log("swipeEventCallback: undo last shape.");
+		that.rt1.renderXY( that.rt0Sprite, 0,0, true ); // undo the last shape addition
+	},
+
+	doubleTapCallback: function() {
+		console.log("doubleTapCallback: IN");
+		if (that.game.device.iOS) {
+			console.log("doubleTapCallback: about to attempt saving canvas.")
+			window.canvas2ImagePlugin.saveImageDataToLibrary(
+				function(msg) {
+					console.log(msg);
+				},
+				function(err){
+					console.log(err);
+				},
+				that.game.canvas
+			);	
+		}
+		
+	},
+
 	clickListener: function() {
 		var x = that.game.input.x;
 		var y = that.game.input.y;
@@ -186,7 +209,7 @@ play_state.prototype = {
 
 		if ( that.p1.msSinceLastClick <= that.game.input.doubleTapRate ) {
 			that.doubleTapOccurred = true;
-			that.rt1.renderXY( that.rt0Sprite, 0,0, true ); // undo the last shape addition
+			that.doubleTapCallback();
 		}
 		//if ( p1.totalTouches == 2 )	{
 		//	that.game.debug.text("clickListener: p1.totalTouches="+that.p1.totalTouches, 10,220);

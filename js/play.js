@@ -104,12 +104,12 @@ play_state.prototype = {
 			var ctx = this.g1.ctx;
 			ctx.fillStyle = "#87CEFA";
 			ctx.beginPath();
-			ctx.moveTo( this.p1.screenX, this.p1.screenY );
-			ctx.lineTo( this.p2.screenX, this.p2.screenY );
-			ctx.lineTo( this.p3.screenX, this.p3.screenY );
+			ctx.moveTo( this.p1.worldX, this.p1.worldY );
+			ctx.lineTo( this.p2.worldX, this.p2.worldY );
+			ctx.lineTo( this.p3.worldX, this.p3.worldY );
 			if ( this.p4.isDown ) {
 				this.shapeBeingDrawn = "square";
-				ctx.lineTo( this.p4.screenX, this.p4.screenY );
+				ctx.lineTo( this.p4.worldX, this.p4.worldY );
 			} else {
 				this.shapeBeingDrawn = "triangle";
 			}
@@ -229,6 +229,7 @@ play_state.prototype = {
 
 	doubleTapCallback: function() {
 		console.log("doubleTapCallback: IN");
+		//alert('doubleTapCallback: IN');
 		if (window.canvas2ImagePlugin) {
 			console.log("doubleTapCallback: about to attempt saving canvas.")
 			window.canvas2ImagePlugin.saveImageDataToLibrary(
@@ -238,6 +239,7 @@ play_state.prototype = {
 				},
 				function(err){
 					console.log(err);
+					alert('Current drawing was *NOT* saved!');
 				},
 				that.game.canvas
 			);	
@@ -251,7 +253,7 @@ play_state.prototype = {
 		console.log("clickListener: x="+x);
 		console.log("clickListener: y="+y);
 
-		if ( that.p1.msSinceLastClick <= that.game.input.doubleTapRate ) {
+		if ( !that.doubleTapOccurred && that.p1.msSinceLastClick <= that.game.input.doubleTapRate ) {
 			that.doubleTapOccurred = true;
 			that.doubleTapCallback();
 		}
@@ -281,9 +283,9 @@ play_state.prototype = {
 			if ( (that.game.time.now - that.drawingShapeStartTime) > that.saveNewShapeThreshold ) {
 
 				var fillStyle = Phaser.Math.getRandom( that.shapeColorArr );
-				var newShapeInfo = {fillStyle:fillStyle, p1:{x:that.p1.screenX, y:that.p1.screenY}, p2:{x:that.p2.screenX, y:that.p2.screenY}, p3:{x:that.p3.screenX, y:that.p3.screenY}};
+				var newShapeInfo = {fillStyle:fillStyle, p1:{x:that.p1.worldX, y:that.p1.worldY}, p2:{x:that.p2.worldX, y:that.p2.worldY}, p3:{x:that.p3.worldX, y:that.p3.worldY}};
 				if ( that.shapeBeingDrawn == "square" ) {
-					newShapeInfo.p4 = {x:that.p4.screenX, y:that.p4.screenY};
+					newShapeInfo.p4 = {x:that.p4.worldX, y:that.p4.worldY};
 				}
 
 				that.drawShapeFromInfo( newShapeInfo );

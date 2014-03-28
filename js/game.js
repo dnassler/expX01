@@ -2,6 +2,21 @@
 
 (function () {
 
+	document.addEventListener('deviceready', function () {
+		console.log("**************** deviceready ******************");
+    if (navigator.notification) { // Override default HTML alert with native dialog
+    	window.alert = function (message) {
+    		navigator.notification.alert(
+	                message,    // message
+	                null,       // callback
+	                "expX01", // title
+	                'OK'        // buttonName
+	                );
+    	};
+    	console.log("modified the alert dialog");
+    }
+	}, false);
+
 	//	Create your Phaser game and inject it into the game div.
 	//	We did it in a window.onload event, but you can do it anywhere (requireJS load, anonymous function, jQuery dom ready, - whatever floats your boat)
 	//	We're using a game size of 1024 x 768 here, but you can use whatever you feel makes sense for your game of course.
@@ -17,3 +32,4 @@
 	game.state.start('load');
 
 })();
+

@@ -12,6 +12,7 @@ var play_state = function(game) {
 	this.g1Sprite = null;
 	
 	this.drawingShape = false;
+	this.shapeBeingDrawn = null;
 
 	this.rt1 = null;
 	this.renderedShapes = null; // this is the sprite that uses the rt1 renderTexture
@@ -67,12 +68,13 @@ play_state.prototype = {
 
     // define elements/sprites/groups..
     // this.group1 = game.add.group();
-    var style = { font: "30px Arial", fill: "#ffffff" };
-    this.label1 = this.game.add.text(this.game.world.width/2,this.game.world.height/2,"Random text in the play state.", style);
-    this.label1.anchor.setTo(0.5,0.5);
 
-    this.rt0 = this.game.add.renderTexture(this.game.world.width, this.game.world.height);
-    this.rt0Sprite = this.game.make.sprite(0,0,this.rt0);
+    // var style = { font: "30px Arial", fill: "#ffffff" };
+    // this.label1 = this.game.add.text(this.game.world.width/2,this.game.world.height/2,"Random text in the play state.", style);
+    // this.label1.anchor.setTo(0.5,0.5);
+
+    // this.rt0 = this.game.add.renderTexture(this.game.world.width, this.game.world.height);
+    // this.rt0Sprite = this.game.make.sprite(0,0,this.rt0);
     this.rt1 = this.game.add.renderTexture(this.game.world.width, this.game.world.height);
     this.renderedShapes = this.game.add.sprite(0,0,this.rt1);
 
@@ -84,6 +86,7 @@ play_state.prototype = {
     this.g1Sprite = this.game.add.sprite(0,0,this.g1);
 
     this.drawingShape = false;
+    this.shapeBeingDrawn = null;
 
     // define sounds..
     // this.sound1 = this.game.add.audio('sound1');
@@ -104,6 +107,12 @@ play_state.prototype = {
 			ctx.moveTo( this.p1.screenX, this.p1.screenY );
 			ctx.lineTo( this.p2.screenX, this.p2.screenY );
 			ctx.lineTo( this.p3.screenX, this.p3.screenY );
+			if ( this.p4.isDown ) {
+				this.shapeBeingDrawn = "square";
+				ctx.lineTo( this.p4.screenX, this.p4.screenY );
+			} else {
+				this.shapeBeingDrawn = "triangle";
+			}
 			ctx.closePath();
 			ctx.fill();
 
@@ -174,23 +183,58 @@ play_state.prototype = {
 	},
 
 	// ===
-	
+	clearDrawing: function() {
+		that.newShapeBM.clear();
+		that.rt1.renderXY( that.newShapeSprite, 0,0, true );
+	},
+
+	drawShapeFromInfo: function(shapeInfo) {
+		console.log("drawShapeFromInfo: in");
+		that.newShapeBM.clear();
+		var ctx = that.newShapeBM.ctx;
+		ctx.save();
+		ctx.fillStyle = shapeInfo.fillStyle;
+		ctx.beginPath();
+		ctx.moveTo( shapeInfo.p1.x, shapeInfo.p1.y );
+		ctx.lineTo( shapeInfo.p2.x, shapeInfo.p2.y );
+		ctx.lineTo( shapeInfo.p3.x, shapeInfo.p3.y );
+		if ( shapeInfo.p4 ) {
+			ctx.lineTo( shapeInfo.p4.x, shapeInfo.p4.y );
+		}
+		ctx.closePath();
+		ctx.globalAlpha = 0.4;
+		ctx.fill();
+		ctx.restore();
+		//that.rt0.renderXY( that.renderedShapes, 0,0, true ); // save the state of the drawn shapes before adding another
+		that.rt1.renderXY( that.newShapeSprite, 0,0, false );
+	},
+
 	myfunc1: function() {},
 
 	myfunc2: function() {},
 
 	swipeEventCallback: function() {
 		console.log("swipeEventCallback: undo last shape.");
-		that.rt1.renderXY( that.rt0Sprite, 0,0, true ); // undo the last shape addition
+		//that.rt1.renderXY( that.rt0Sprite, 0,0, true ); // undo the last shape addition
+
+		if ( that.shapeHistory.length > 0 ) {
+			var lastShape = that.shapeHistory.pop();
+			var i;
+			that.clearDrawing();
+			for ( i=0; i<that.shapeHistory.length; i+=1 ) {
+				that.drawShapeFromInfo( that.shapeHistory[i] );
+			}
+		}
 	},
 
 	doubleTapCallback: function() {
 		console.log("doubleTapCallback: IN");
-		if (that.game.device.iOS) {
+		if (window.canvas2ImagePlugin) {
 			console.log("doubleTapCallback: about to attempt saving canvas.")
 			window.canvas2ImagePlugin.saveImageDataToLibrary(
 				function(msg) {
 					console.log(msg);
+					alert('Current drawing was saved!');
 				},
 				function(err){
 					console.log(err);
@@ -236,26 +280,34 @@ play_state.prototype = {
 
 			if ( (that.game.time.now - that.drawingShapeStartTime) > that.saveNewShapeThreshold ) {
 
-				that.newShapeBM.clear();
-				var ctx = that.newShapeBM.ctx;
-				ctx.save();
-				//ctx.fillStyle = "#708090";
-				ctx.fillStyle = Phaser.Math.getRandom( that.shapeColorArr );
-				ctx.beginPath();
-				ctx.moveTo( that.p1.screenX, that.p1.screenY );
-				ctx.lineTo( that.p2.screenX, that.p2.screenY );
-				ctx.lineTo( that.p3.screenX, that.p3.screenY );
-				ctx.closePath();
-				ctx.globalAlpha = 0.4;
-				ctx.fill();
-				ctx.restore();
-				//this.newShapeSprite.visible = true;
-				that.rt0.renderXY( that.renderedShapes, 0,0, true ); // save the state of the drawn shapes before adding another
-				that.rt1.renderXY( that.newShapeSprite, 0,0, false );
-				//this.newShapeSprite.visible = false;
+				var fillStyle = Phaser.Math.getRandom( that.shapeColorArr );
+				var newShapeInfo = {fillStyle:fillStyle, p1:{x:that.p1.screenX, y:that.p1.screenY}, p2:{x:that.p2.screenX, y:that.p2.screenY}, p3:{x:that.p3.screenX, y:that.p3.screenY}};
+				if ( that.shapeBeingDrawn == "square" ) {
+					newShapeInfo.p4 = {x:that.p4.screenX, y:that.p4.screenY};
+				}
 
-				//var newShapeInfo = {p1:{x:p1.screenX, y:p1.screenY}, p2:{x:p2.screenX, y:p2.screenY}, p3:{x:p3.screenX, y:p3.screenY}};
-				//that.shapeHistory.push( newShapeInfo );
+				that.drawShapeFromInfo( newShapeInfo );
+				that.shapeHistory.push( newShapeInfo );
+
+				// that.newShapeBM.clear();
+				// var ctx = that.newShapeBM.ctx;
+				// ctx.save();
+				// ctx.fillStyle = Phaser.Math.getRandom( that.shapeColorArr );
+				// ctx.beginPath();
+				// ctx.moveTo( that.p1.screenX, that.p1.screenY );
+				// ctx.lineTo( that.p2.screenX, that.p2.screenY );
+				// ctx.lineTo( that.p3.screenX, that.p3.screenY );
+				// if ( that.shapeBeingDrawn == "square" ) {
+				// 	ctx.lineTo( that.p4.screenX, that.p4.screenY );
+				// }
+				// ctx.closePath();
+				// ctx.globalAlpha = 0.4;
+				// ctx.fill();
+				// ctx.restore();
+				// that.rt0.renderXY( that.renderedShapes, 0,0, true ); // save the state of the drawn shapes before adding another
+				// that.rt1.renderXY( that.newShapeSprite, 0,0, false );
+
+				
 				//that.lastShape = newShapeInfo;
 
 			}
